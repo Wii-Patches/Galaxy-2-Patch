@@ -255,9 +255,9 @@ def build(region, dol):
     ops.append(make_b_patch(sites['stick_hook'], 'cc_left_stick', 'Left stick copy hook'))
 
     # 3. Pointer math 4-word replacement at ptr_math_hook:
-    # 60000000 (nop), mflr r14 (7dc802a6), b cc_pointer_math, mtlr r14 (7dc803a6)
+    # 60000000 (nop), mflr r7 (7ce802a6), b cc_pointer_math, mtlr r7 (7ce803a6)
     b_ptr_math = b_insn(symbols['cc_pointer_math'], sites['ptr_math_hook'] + 8)
-    math_patch_words = [0x60000000, 0x7DC802A6, b_ptr_math, 0x7DC803A6]
+    math_patch_words = [0x60000000, 0x7CE802A6, b_ptr_math, 0x7CE803A6]
     math_patch_bytes = b''.join(struct.pack('>I', w) for w in math_patch_words)
     ops.append(Patch(
         sites['ptr_math_hook'],

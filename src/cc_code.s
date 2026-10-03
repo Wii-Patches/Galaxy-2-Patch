@@ -39,7 +39,7 @@ cc_get_ext:
 cc_button_copy:
     lbz     0, 92(6)
     cmpwi   0, 2
-    mflr    14
+    mflr    7
     bne     1f
     lwz     0, 96(6)
     bl      cc_remap
@@ -57,7 +57,7 @@ cc_button_copy:
     stw     0, 4(5)
     lwz     0, 8(6)
     stw     0, 8(5)
-2:  mtlr    14
+2:  mtlr    7
     lis     12, COPY_BTN_RET@ha
     addi    12, 12, COPY_BTN_RET@l
     mtctr   12
@@ -286,23 +286,23 @@ cc_pointer_math:
     mtctr   12
     bctr
 1:  lfs     0, 32(5)
-    lfs     15, 116(6)
+    lfs     5, 116(6)
     lis     9, cc_floats@ha
     addi    9, 9, cc_floats@l
-    lfs     14, 0(9)
-    fdivs   15, 15, 14
-    fadds   1, 0, 15
+    lfs     4, 0(9)
+    fdivs   5, 5, 4
+    fadds   1, 0, 5
     lfs     2, 4(9)
     lfs     3, 8(9)
     bl      CLAMP
     stfs    1, 32(5)
     lfs     0, 36(5)
-    lfs     15, 120(6)
+    lfs     5, 120(6)
     lis     9, cc_floats@ha
     addi    9, 9, cc_floats@l
-    lfs     14, 0(9)
-    fdivs   15, 15, 14
-    fsubs   1, 0, 15
+    lfs     4, 0(9)
+    fdivs   5, 5, 4
+    fsubs   1, 0, 5
     lfs     2, 4(9)
     lfs     3, 8(9)
     bl      CLAMP

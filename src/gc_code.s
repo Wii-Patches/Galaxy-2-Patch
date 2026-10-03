@@ -3,28 +3,25 @@
 
 .global gc_kpad_read_hook
 gc_kpad_read_hook:
-    # Displaced instruction: stw r3, 4(r29) (stores KPADRead sample count)
-    stw     3, 4(29)
-
     # Check if channel is 0..3
     cmplwi  28, 3
     bgt     9f
 
     # Ensure hardware auto-polling is active for port r28
-    mulli   5, 28, 12
-    lis     6, 0xCD00
-    add     6, 6, 5
-    lis     7, 0x0040
-    ori     7, 7, 0x0300
-    stw     7, 0x6400(6)                # SIC<n>OUTBUF
-    lis     7, 0x8000
-    stw     7, 0x6438(6)                # SISR WR latch
-    lwz     7, 0x6430(6)                # SIPOLL
-    ori     7, 7, 0x00F0
-    stw     7, 0x6430(6)
+    lis     6, 0xCD00                   # r6 = 0xCD000000 base IO
+    mulli   5, 28, 12                   # r5 = chan * 12
+    add     7, 6, 5                     # r7 = 0xCD006400 + chan * 12
+    lis     8, 0x0040
+    ori     8, 8, 0x0300
+    stw     8, 0x6400(7)                # SIC<chan>OUTBUF
+    lis     8, 0x8000
+    stw     8, 0x6438(6)                # SISR WR latch (at 0xCD006438)
+    lwz     8, 0x6430(6)                # SIPOLL (at 0xCD006430)
+    ori     8, 8, 0x00F0
+    stw     8, 0x6430(6)
 
     # Read SI input buffer
-    lwz     8, 0x6404(6)                # INBUFH (buttons + main stick)
+    lwz     8, 0x6404(7)                # INBUFH (buttons + main stick)
     cmpwi   8, 0
     blt     9f                          # error or no controller
     andis.  0, 8, 0x0080
@@ -35,7 +32,7 @@ gc_kpad_read_hook:
     lwz     12, 12(27)
     lwzx    4, 31, 12                   # r4 = KPADStatus buffer
 
-    lwz     9, 0x6408(6)                # INBUFL (C-stick + triggers)
+    lwz     9, 0x6408(7)                # INBUFL (C-stick + triggers)
 
     # Decode and map buttons
     srwi    5, 8, 16                    # raw GC buttons
@@ -134,9 +131,10 @@ gc_kpad_read_hook:
     cmpwi   3, 1
     bge     9f
     li      3, 1
-    stw     3, 4(29)                    # update stored sample count!
 
-9:  # Return to loop
+9:  # Execute displaced instruction: addi r28, r28, 1
+    addi    28, 28, 1
+    # Return to loop at 0x804CF888 (stw r3, 4(r29))
     lis     12, KPAD_READ_RET@ha
     addi    12, 12, KPAD_READ_RET@l
     mtctr   12

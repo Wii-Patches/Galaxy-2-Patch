@@ -16,7 +16,13 @@ def main():
     image = os.environ.get('SMG2_IMAGE')
     if not image:
         sys.exit('set SMG2_IMAGE to path of patched Super Mario Galaxy 2 image')
-    cmd = [dolphin, '-u', user, '-b', '-e', image]
+    os.makedirs(os.path.join(user, 'Config'), exist_ok=True)
+    open(os.path.join(user, 'Config', 'Dolphin.ini'), 'w').write(
+        f"[General]\nGDBPort = {PORT}\n[Core]\nCPUThread = False\nEnableDebugging = True\n"
+        f"EnableCheats = False\nSIDevice0 = 6\nSIDevice1 = 0\nSIDevice2 = 0\nSIDevice3 = 0\n"
+        f"[Interface]\nConfirmStop = False\nUsePanicHandlers = False\n"
+    )
+    cmd = [dolphin, '-u', os.path.abspath(user), '-b', '-e', image]
     print('Starting Dolphin...')
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     try:
