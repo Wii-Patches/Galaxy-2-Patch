@@ -1,0 +1,6 @@
+*.png binary
+*.icns binary
+*.ico binary
+*.json text eol=lf
+*.py text eol=lf
+*.s text eol=lf
