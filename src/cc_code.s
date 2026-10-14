@@ -39,7 +39,7 @@ cc_get_ext:
 cc_button_copy:
     lbz     0, 92(6)
     cmpwi   0, 2
-    mflr    7
+    mflr    9                           # r7 is the caller's loop index; r9 is free here
     bne     1f
     lwz     0, 96(6)
     bl      cc_remap
@@ -57,11 +57,8 @@ cc_button_copy:
     stw     0, 4(5)
     lwz     0, 8(6)
     stw     0, 8(5)
-2:  mtlr    7
-    lis     12, COPY_BTN_RET@ha
-    addi    12, 12, COPY_BTN_RET@l
-    mtctr   12
-    bctr
+2:  mtlr    9
+    b       COPY_BTN_RET
 
 .global cc_remap
 cc_remap:
@@ -130,31 +127,32 @@ cc_remap:
     blr
 
 .global cc_left_stick
+# Sits inside the KPADStatus extension copy loop (CTR = iteration count, r11/r12 =
+# source/destination cursors, 8 bytes per pass), replacing its `lwzu 0, 8(11)`.
+# r9 already holds the word at 4(r11).  CTR and r12 are live here, so leave both
+# alone and return with a plain branch.  For a Classic Controller sample the
+# extension block is {hold, trig, release, lstick x/y, rstick x/y, ...} while the
+# game reads a Nunchuk block {stick x/y, acc x/y/z, ...}: pass 0 supplies the left
+# stick as the Nunchuk stick and passes 1-3 zero the Nunchuk accelerometer.
 cc_left_stick:
     lbz     0, 92(6)
     cmpwi   0, 2
-    beq     1f
-    lwz     9, 4(11)
-    lwzu    0, 8(11)
-    lis     12, STICK_RET@ha
-    addi    12, 12, STICK_RET@l
-    mtctr   12
-    bctr
-1:  lwz     9, 16(11)
-    lwzu    0, 20(11)
-    stw     9, 4(12)
-    stwu    0, 8(12)
-    xoris   9, 9, 0x8000
-    xoris   0, 0, 0x8000
-    stw     9, 4(12)
-    stwu    0, 8(12)
-    xoris   9, 9, 0x8000
-    xoris   0, 0, 0x8000
-    stwu    0, 4(12)
-    lis     12, STICK_RET@ha
-    addi    12, 12, STICK_RET@l
-    mtctr   12
-    bctr
+    bne     3f
+    addi    0, 6, 92
+    subf    0, 0, 11                    # 8 * pass number
+    cmpwi   0, 0
+    bne     1f
+    lwz     9, 16(11)                   # left stick x
+    lwz     0, 20(11)                   # left stick y
+    b       2f
+1:  cmpwi   0, 24
+    bgt     3f
+    li      9, 0
+    li      0, 0
+2:  addi    11, 11, 8
+    b       STICK_RET
+3:  lwzu    0, 8(11)
+    b       STICK_RET
 
 .global cc_ui1
 cc_ui1:
@@ -229,10 +227,7 @@ cc_ui4:
     lbz     31, 4110(30)
     bne     1f
     li      31, 0
-1:  lis     12, UI4_RET@ha
-    addi    12, 12, UI4_RET@l
-    mtctr   12
-    bctr
+1:  b       UI4_RET
 
 .global cc_ui5
 cc_ui5:
@@ -241,14 +236,8 @@ cc_ui5:
     cmpwi   3, 2
     beq     1f
     bl      UI5_CALL
-    lis     12, UI5_RET1@ha
-    addi    12, 12, UI5_RET1@l
-    mtctr   12
-    bctr
-1:  lis     12, UI5_RET2@ha
-    addi    12, 12, UI5_RET2@l
-    mtctr   12
-    bctr
+    b       UI5_RET1
+1:  b       UI5_RET2
 
 .global cc_pointer_check
 cc_pointer_check:
@@ -274,6 +263,8 @@ cc_pointer_check:
 
 .global cc_pointer_math
 cc_pointer_math:
+    mflr    0
+    stw     0, 8(1)                     # spare slot in the caller's frame (r7 is its loop index)
     lbz     0, 95(6)
     cmpwi   0, 8
     beq     1f
@@ -281,10 +272,9 @@ cc_pointer_math:
     lwz     9, 32(6)
     stw     9, 32(5)
     stw     0, 36(5)
-    lis     12, PTR_MATH_RET@ha
-    addi    12, 12, PTR_MATH_RET@l
-    mtctr   12
-    bctr
+    lwz     0, 8(1)
+    mtlr    0
+    b       PTR_MATH_RET
 1:  lfs     0, 32(5)
     lfs     5, 116(6)
     lis     9, cc_floats@ha
@@ -307,10 +297,9 @@ cc_pointer_math:
     lfs     3, 8(9)
     bl      CLAMP
     stfs    1, 36(5)
-    lis     12, PTR_MATH_RET@ha
-    addi    12, 12, PTR_MATH_RET@l
-    mtctr   12
-    bctr
+    lwz     0, 8(1)
+    mtlr    0
+    b       PTR_MATH_RET
 
 .global cc_pointer_valid
 cc_pointer_valid:
@@ -319,10 +308,7 @@ cc_pointer_valid:
     lbz     0, 94(6)
     bne     1f
     li      0, 2
-1:  lis     12, PTR_VALID_RET@ha
-    addi    12, 12, PTR_VALID_RET@l
-    mtctr   12
-    bctr
+1:  b       PTR_VALID_RET
 
 .global cc_pointer_update
 cc_pointer_update:
@@ -330,15 +316,9 @@ cc_pointer_update:
     bl      cc_get_status
     cmpwi   3, 2
     bne     1f
-    lis     12, PTR_UPDATE_RET1@ha
-    addi    12, 12, PTR_UPDATE_RET1@l
-    mtctr   12
-    bctr
+    b       PTR_UPDATE_RET1
 1:  lwz     0, 52(31)
-    lis     12, PTR_UPDATE_RET2@ha
-    addi    12, 12, PTR_UPDATE_RET2@l
-    mtctr   12
-    bctr
+    b       PTR_UPDATE_RET2
 
 .align 4
 cc_floats:

@@ -135,10 +135,7 @@ gc_kpad_read_hook:
 9:  # Execute displaced instruction: addi r28, r28, 1
     addi    28, 28, 1
     # Return to loop at 0x804CF888 (stw r3, 4(r29))
-    lis     12, KPAD_READ_RET@ha
-    addi    12, 12, KPAD_READ_RET@l
-    mtctr   12
-    bctr
+    b       KPAD_READ_RET
 
 .global gc_probe_hook
 gc_probe_hook:
@@ -150,10 +147,7 @@ gc_probe_hook:
 
     # Run real WPADProbe: displaced instruction stwu r1,-16(r1)
     stwu    1, -16(1)
-    lis     12, WPAD_PROBE_BODY@ha
-    addi    12, 12, WPAD_PROBE_BODY@l
-    mtctr   12
-    bctrl
+    bl      WPAD_PROBE_BODY
 
     cmpwi   3, 0
     beq     1f                          # Wiimote is connected!
