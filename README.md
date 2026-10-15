@@ -1,6 +1,6 @@
 # Super Mario Galaxy 2 Patch
 
-Play **Super Mario Galaxy 2** (Wii) with a **GameCube controller** — standalone in port 1 without needing a Wii Remote — or with a **Classic Controller**. Works across all five regional releases: USA (`SB4E01`), Europe (`SB4P01`), Japan (`SB4J01`), Asia (`SB4W01`), and Korea (`SB4K01`).
+Play **Super Mario Galaxy 2** (Wii) with a **GameCube controller** — standalone in port 1 without needing a Wii Remote — or with a **Classic Controller**. The Classic Controller patch covers all five regional releases: USA (`SB4E01`), Europe (`SB4P01`), Japan (`SB4J01`), Asia (`SB4W01`), and Korea (`SB4K01`). The GameCube controller patch is currently built for the USA release; the other regions need their `main.dol` to build it (see [Building from Source](#building-from-source)).
 
 The patches are applied to your own clean disc image: drop a clean `.wbfs` or `.iso` onto the patcher and play the result on a Wii (USB loader) or in Dolphin. Nothing copyrighted from the game is included in this repository.
 
@@ -10,7 +10,7 @@ The patches are applied to your own clean disc image: drop a clean `.wbfs` or `.
 
 Super Mario Galaxy 2 was designed exclusively for the Wii Remote and Nunchuk, using accelerometer shakes for Mario's Spin Attack and Yoshi maneuvers, and the IR camera for the Star Pointer.
 
-This patch synthesises native Classic Controller state directly into Nintendo's `KPAD` sample ring buffer inside `main.dol`. Downstream hooks redirect Mario's movement to the left analog stick, the Star Pointer to the right analog stick (or GameCube C-Stick), and spin attacks to dedicated buttons. When a GameCube controller is plugged in, the game detects it via the Serial Interface (SI) registers, automatically provides Classic Controller samples, and bypasses the Wii Remote connection requirements.
+This patch synthesises native Classic Controller state directly into Nintendo's `KPAD` sample ring buffer inside `main.dol`. Downstream hooks redirect Mario's movement to the left analog stick, the Star Pointer to the right analog stick (or GameCube C-Stick), and spin attacks to dedicated buttons. When a GameCube controller is plugged into port 1, the patch turns on the Serial Interface's auto-polling (the game never links Nintendo's `PAD` library, so nothing else would read the pad), tells the game a controller with a Classic Controller attached has connected on channel 1, and feeds the pad's state in as Classic Controller samples. A real Wii Remote always takes priority.
 
 ## Controls
 
@@ -30,6 +30,9 @@ Play with a GameCube controller connected to Port 1. **No Wii Remote is needed.*
 | R | Shoot Star Bit / Lock On (replaces Wii Remote B) |
 | Start | Pause menu |
 | D-Pad | Camera adjustment |
+| Start + Z | Wii HOME Menu |
+
+The GameCube controller patch builds on the Classic Controller patch, so the patchers add that too.
 
 ### Classic Controller
 
@@ -72,9 +75,11 @@ python3 tools/patch_disc.py "Super Mario Galaxy 2.wbfs" --cc --gc
 Copy `codes/<disc id>.ini` (`SB4E01`, `SB4P01`, `SB4J01`, `SB4W01`, or `SB4K01`) into Dolphin's `GameSettings` directory, or use `codes/<disc id>.txt` with USB loaders (Ocarina / Gecko OS).
 
 In Dolphin:
-1. Enable **Cheats / Gecko Codes**.
+1. Enable **Cheats / Gecko Codes**, and enable both the Classic Controller and the GameCube controller codes.
 2. Set **GameCube Port 1** to **Standard Controller**.
 3. Launch the game!
+
+The codes write their routines to `0x80001820`–`0x80003000`, which is where Gecko code handlers live, so a patched disc (or Riivolution) is the more reliable install.
 
 ### Riivolution
 
@@ -82,14 +87,18 @@ Copy the `riivolution/` directory to the root of your SD card / USB drive for Ri
 
 ## Building from Source
 
-To verify or rebuild everything from the assembly sources:
+To verify or rebuild everything from the sources (devkitPPC; retail `main.dol` files named `<disc id>.dol` in `$SMG2_DOLS`):
 
 ```bash
-python3 tools/gen_prebuilt.py    # compiles src/*.s to tools/prebuilt/*.json (requires devkitPPC)
+python3 tools/gen_prebuilt.py    # compiles src/ to tools/prebuilt/*.json; regions without a DOL are skipped
 python3 tools/build.py           # generates codes/ and riivolution/ files
 python3 tools/check.py           # runs consistency checks
 python3 tools/verify.py          # verifies against retail DOLs
 ```
+
+The GameCube controller code is written once against the USA `main.dol`; for another region `gen_prebuilt.py` finds the same code in that region's DOL (the USA one must be present too).
+
+`lab/gc_live.py` boots an image in Dolphin with the patch injected over the GDB stub and no Wii Remote connected, and prints what the hooks and the game see (`FEED=1` drives the pad from the script).
 
 ## License
 

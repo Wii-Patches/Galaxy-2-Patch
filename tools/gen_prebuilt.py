@@ -23,7 +23,7 @@ def dol_for(region):
         p = os.path.join(base, region + '.dol')
         if os.path.exists(p):
             return Dol(p)
-    sys.exit('set SMG2_DOLS=<dir with %s.dol> or SMG2_DOL_%s=<path>' % (region, region))
+    return None
 
 def main(argv):
     which = argv or ['cc', 'gc']
@@ -32,6 +32,10 @@ def main(argv):
         mod = __import__('gen_' + name)
         for region in REGIONS:
             d = dol_for(region)
+            if d is None:
+                print('%-3s %s  skipped: no main.dol (set SMG2_DOLS=<dir with %s.dol> or SMG2_DOL_%s=<path>)'
+                      % (name, region, region, region))
+                continue
             f = mod.build(region, d)
             path = os.path.join(PREBUILT, '%s_%s.json' % (name, region))
             with open(path, 'w') as fh:

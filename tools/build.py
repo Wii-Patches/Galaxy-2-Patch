@@ -12,6 +12,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import features
+import patcher
 from regions import REGIONS
 
 ROOT = os.path.join(HERE, '..')
@@ -24,8 +25,10 @@ BLURB = {
     'cc': ['Play with a Classic Controller plugged into the Wii Remote: left stick moves, right stick aims the cursor.',
            'A jump, B crouch/ground pound, X/Y spin attack, ZR shoot star bits, L/ZL crouch/long jump, R reset camera.'],
     'gc': ['Play with a GameCube controller in port 1 (no Wii Remote needed):',
-           'Control stick moves Mario, C-stick aims the star pointer, A jump, B crouch/ground pound,',
-           'X/Y spin attack, Z shoot star bits, L/R crouch/long jump, Start pause, D-pad camera.'],
+           'Control stick moves Mario, C-stick aims the star pointer, A jump, B back/dive,',
+           'X/Y spin attack, Z crouch/ground pound, L reset camera, R shoot star bits, Start pause,',
+           'D-pad camera, Start+Z HOME Menu.',
+           'Needs the Classic Controller code enabled too.'],
 }
 COMBINED_WARNING = []
 
@@ -55,7 +58,8 @@ def riivolution_xml(region):
     for name in features.FEATURES:
         if features.available(name, region):
             out.append('      <option name="%s" default="1">' % features.TITLES[name])
-            out.append('        <choice name="Enabled"><patch id="%s" /></choice>' % name)
+            deps = ''.join('<patch id="%s" />' % d for d in patcher.REQUIRES.get(name, ()))
+            out.append('        <choice name="Enabled">%s<patch id="%s" /></choice>' % (deps, name))
             out.append('      </option>')
     out += ['    </section>', '  </options>']
     for name in features.FEATURES:

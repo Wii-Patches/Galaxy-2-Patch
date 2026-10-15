@@ -59,7 +59,8 @@ def run_patch(image_path, log, done, which=('cc', 'gc'), ios=None):
         if wit is None:
             raise RuntimeError('wit (Wiimms ISO Tool) not found: not bundled with this '
                                'build and not on PATH')
-        which = [w for w in patcher.ORDER if w in which]
+        asked = [w for w in patcher.ORDER if w in which]
+        which = patcher.with_deps(asked)
         if not which:
             raise RuntimeError('nothing selected: tick at least one patch')
         fmt = '--iso' if image_path.lower().endswith('.iso') else '--wbfs'
@@ -93,6 +94,13 @@ def run_patch(image_path, log, done, which=('cc', 'gc'), ios=None):
             todo = []
             for name in which:
                 st = have.get(name)
+                if st is None:
+                    log('%s is not available for %s yet, skipping' % (features.TITLES[name], REGIONS[region]['label']))
+                    if name in patcher.REQUIRES:
+                        continue
+                    raise RuntimeError('%s is needed but not available for %s' % (features.TITLES[name], region))
+                if name not in asked and st != 'patched':
+                    log('%s is needed by the GameCube controller patch, adding it' % features.TITLES[name])
                 if st == 'patched':
                     log('%s is already in this disc, skipping' % features.TITLES[name])
                 elif st == 'clean':

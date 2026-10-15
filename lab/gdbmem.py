@@ -86,6 +86,16 @@ class Gdb:
             off += n
         return out
 
+    def write_mem(self, addr, data):
+        """M<addr>,<len>:<hex> -- chunked like read_mem."""
+        off = 0
+        while off < len(data):
+            chunk = data[off:off + 128]
+            r = self.cmd('M%x,%x:%s' % (addr + off, len(chunk), chunk.hex()))
+            if r != 'OK':
+                raise RuntimeError('write %08X+%X failed: %r' % (addr + off, len(chunk), r))
+            off += len(chunk)
+
     def interrupt(self):
         self.raw(b'\x03')
         time.sleep(0.5)

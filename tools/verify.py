@@ -80,8 +80,9 @@ def main():
                         tgt = tgt - 0x04000000 if tgt & 0x02000000 else tgt
                         check((site >> 26) == 18 and not site & 3 and (op.site + tgt) == op.tramp,
                               '%s: 0x%08X branches to 0x%08X' % (name, op.site, op.tramp))
-                    touched += [(a, len(b)) for a, b in f.writes()]
-            # nothing else changed
+            # nothing else changed (a feature may pull in what it needs, e.g. gc -> cc)
+            for name in patcher.with_deps(combo):
+                touched += [(a, len(b)) for a, b in features.load(name, region).writes()]
             for off, va, size, idx in d0.secs:
                 a = bytes(d0.data[off:off + size]); b = d.read(va, size)
                 diff = [i for i in range(size) if a[i] != b[i]]

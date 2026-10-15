@@ -33,7 +33,7 @@ the game's own code never touches (game code starts at `0x80004000`):
 | Window | Size | Purpose |
 | --- | --- | --- |
 | `0x80001820 - 0x80002400` | 0xBE0 | Classic Controller driver routines and UI trampolines |
-| `0x80002400 - 0x80003000` | 0xC00 | GameCube controller driver and stick calibration table |
+| `0x80002400 - 0x80003000` | 0xC00 | GameCube controller state and hook routines |
 
 The first `0x20` bytes (`0x80001800 - 0x80001820`) are skipped because `0x80001800` is
 reserved by OS exception and debug handlers.
@@ -49,13 +49,34 @@ When an extension controller is detected:
 
 ## GameCube Controller Architecture
 
-GameCube controllers connect via the physical Serial Interface (SI) ports on top of the original Wii console:
-1. Auto-polling is initialized on the SI registers (`0xCD006400`).
-2. Input buffer `0x6404` (`INBUFH`) and `0x6408` (`INBUFL`) are read each frame.
-3. The 256-entry float lookup table calibrates analog stick deadzones and scales axes to `[-1.0, 1.0]`.
-4. Buttons and C-stick values are injected directly into `KPADStatus` with extension type 2 (Classic Controller).
-5. `WPADProbe` (`0x805EB410`) reports a connected controller even if no Wii Remote is paired.
-6. Panic handlers at `0x804B7D90`, `0x804B7E54`, and `0x805B66B4` are disabled (`nop`) to prevent "Please connect Nunchuk" freezes.
+The game links Nintendo's `SI` library but not `PAD`, so nothing ever polls the
+GameCube ports, and its controller manager only treats a player as present once
+WPAD's connect callback fires, which never happens without a Wii Remote. The
+patch (`src/gcpad.c`, entry stubs in `src/hooks.S`) therefore presents a pad in
+port 1 as a Wii Remote with a Classic Controller on channel 0, and leaves the
+rest to the Classic Controller patch, which it requires.
+
+| Hook | USA site | Replaced instruction | Job |
+| --- | --- | --- | --- |
+| `FRAME` | `0x804CF840` | `stwu r1,-0x30(r1)` | Per-frame controller update (the loop that calls `KPADRead` for each channel): drive the SI poller; when a pad appears and no Wii Remote owns channel 0, fire WPAD's connect callback and the extension callback (type 2) as WPAD would; fire the disconnect when it goes |
+| `SAMPLE` | `0x8054B5F4` | `lbz r0,0x17b(r21)` | `KPADiRead`'s "samples queued?" check: write two Classic Controller samples into the ring (`+0x180`, `0x42` bytes each); with a bare Wii Remote, fill its samples' extension fields instead |
+| `PROBE` | `0x805EB410` | `stwu r1,-0x10(r1)` | `WPADProbe`: report "connected, Classic Controller" for channel 0 while the pad answers, unless a real Nunchuk/Classic Controller is there |
+
+The poller (after Barrel Blast Patch, hardware-tested there):
+
+1. Probe port 1 with `SIGetType` at most every 0.25 s until the cached type is a standard pad (`(type & 0x18000000) == 0x08000000`).
+2. Write the poll command `0x00400300` to `SIC0OUTBUF` (`0xCD006400`; the Wii's SI, not `0xCC006400`).
+3. Write `SISR` with the error bits acknowledged plus `WR` (bit 31), which latches the command.
+4. Enable polling and copy-on-vblank for port 1 in `SIPOLL` **and** in `si::`'s shadow copy (`0x8071A59C`), which `SISetXY` writes back on every retrace.
+5. Copy a persistent `NOREP` into the type cache (`0x8071A5B0`) so an unplugged pad is probed again, and un-wedge `si::`'s busy flag after a second.
+
+A response counts when `ERRSTAT` (bit 31) is clear and `PAD_USE_ORIGIN` (bit 23) is set.
+
+Button mapping (GameCube → Classic Controller, which the Classic Controller patch then maps onto the Wii Remote + Nunchuk): A→a, B→b, X/Y→x, Z→ZL, L→L, R→R, Start→+, D-pad→D-pad, Start+Z→HOME. The analog L/R count as pressed past `0xA0`. Sticks are scaled ×3 around the centre (KPAD maps 60–308 to 0–1), so a pad's dead zone is about ±20.
+
+State (`0x80002400`, 0x40 bytes) holds the poller's timers, the previous frame's buttons and hook counters that `lab/gc_live.py` reads over Dolphin's GDB stub.
+
+The other releases are found by matching the USA code with relocatable bits masked (`tools/sig.py`); data addresses are read from the matched `lis`/`addi` pairs (`src/gen_gc.py`).
 
 ## Supported Releases
 

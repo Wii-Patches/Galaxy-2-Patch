@@ -9,6 +9,16 @@ from ops import apply_static
 from regions import REGIONS
 
 ORDER = ('cc', 'gc')
+# the GameCube pad is presented to the game as a Classic Controller
+REQUIRES = {'gc': ('cc',)}
+
+
+def with_deps(which):
+    """`which` plus whatever those features need, in ORDER."""
+    want = set(which)
+    for n in which:
+        want.update(REQUIRES.get(n, ()))
+    return [n for n in ORDER if n in want]
 
 
 def detect_region(dol):
@@ -44,7 +54,12 @@ def status(dol, region):
 
 def patch(dol, region, which):
     """Patch `dol` (a dol.Dol) in place with the features named in `which`."""
-    feats = [features.load(n, region) for n in ORDER if n in which]
+    feats = []
+    for n in with_deps(which):
+        f = features.load(n, region)
+        if n not in which and f.is_applied(dol):
+            continue                    # a requirement that is already in
+        feats.append(f)
     if not feats:
         raise ValueError('nothing selected')
     apply_static(dol, feats)
@@ -71,5 +86,6 @@ if __name__ == '__main__':
     reg = a.region or detect_region(d)
     if not reg:
         sys.exit('could not identify this main.dol; pass --region')
-    which = [n for n in ORDER if getattr(a, n)] or list(ORDER)
+    which = [n for n in ORDER if getattr(a, n) and features.available(n, reg)] or \
+        [n for n in ORDER if features.available(n, reg)]
     print(reg, REGIONS[reg]['label'], '->', ', '.join(patch_file(a.src, a.dst, reg, which)))

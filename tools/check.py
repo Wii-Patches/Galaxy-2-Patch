@@ -35,7 +35,8 @@ def main():
     for region in REGIONS:
         taken = []
         for name in features.FEATURES:
-            check(features.available(name, region), 'missing prebuilt %s_%s.json' % (name, region))
+            if name == 'cc':
+                check(features.available(name, region), 'missing prebuilt %s_%s.json' % (name, region))
             if not features.available(name, region):
                 continue
             f = features.load(name, region)
