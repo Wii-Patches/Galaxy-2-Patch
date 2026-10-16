@@ -86,4 +86,4 @@ The other releases are found by matching the USA code with relocatable bits mask
 | `SB4P01` | Europe | Super Mario Galaxy 2 (Europe/Australia) | 7,568,352 |
 | `SB4J01` | Japan | Super Mario Galaxy 2 (Japan) | 7,544,000 |
 | `SB4W01` | Taiwan/Asia | Super Mario Galaxy 2 (Taiwan/Hong Kong) | 7,546,784 |
-| `SB4K01` | Korea | Super Mario Galaxy 2 (Korea) | 7,581,952 |
+| `SB4K01` | Korea | Super Mario Galaxy 2 (Korea) | 7,541,568 |

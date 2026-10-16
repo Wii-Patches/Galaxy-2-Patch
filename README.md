@@ -1,6 +1,6 @@
 # Super Mario Galaxy 2 Patch
 
-Play **Super Mario Galaxy 2** (Wii) with a **GameCube controller** — standalone in port 1 without needing a Wii Remote — or with a **Classic Controller**. The Classic Controller patch covers all five regional releases: USA (`SB4E01`), Europe (`SB4P01`), Japan (`SB4J01`), Asia (`SB4W01`), and Korea (`SB4K01`). The GameCube controller patch is currently built for the USA release; the other regions need their `main.dol` to build it (see [Building from Source](#building-from-source)).
+Play **Super Mario Galaxy 2** (Wii) with a **GameCube controller** — standalone in port 1 without needing a Wii Remote — or with a **Classic Controller**. Works across all five regional releases: USA (`SB4E01`), Europe (`SB4P01`), Japan (`SB4J01`), Asia (`SB4W01`), and Korea (`SB4K01`).
 
 The patches are applied to your own clean disc image: drop a clean `.wbfs` or `.iso` onto the patcher and play the result on a Wii (USB loader) or in Dolphin. Nothing copyrighted from the game is included in this repository.
 
@@ -98,7 +98,7 @@ python3 tools/verify.py          # verifies against retail DOLs
 
 The GameCube controller code is written once against the USA `main.dol`; for another region `gen_prebuilt.py` finds the same code in that region's DOL (the USA one must be present too).
 
-`lab/gc_live.py` boots an image in Dolphin with the patch injected over the GDB stub and no Wii Remote connected, and prints what the hooks and the game see (`FEED=1` drives the pad from the script).
+`lab/gc_live.py` boots an image in Dolphin with the patch injected over the GDB stub and no Wii Remote connected, and prints what the hooks and the game see (`FEED=1` drives the pad from the script). `lab/drive.py` does the same but takes pad commands from a file and dumps every frame, for playing the game from a script.
 
 ## License
 

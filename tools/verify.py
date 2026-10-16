@@ -59,12 +59,13 @@ def main():
         print(region, REGIONS[region]['label'])
         d0 = Dol(path)
         check(patcher.detect_region(d0) == region, 'detected as %s' % region)
-        for name in features.FEATURES:
+        avail = [n for n in features.FEATURES if features.available(n, region)]
+        for name in avail:
             f = features.load(name, region)
             check(not f.check_pristine(d0), '%s: every site holds the retail bytes' % name)
 
         everything = itertools.chain.from_iterable(
-            itertools.combinations(features.FEATURES, n) for n in (1, 2))
+            itertools.combinations(avail, n) for n in (1, 2))
         for combo in everything:
             d = Dol(path)
             patcher.patch(d, region, list(combo))

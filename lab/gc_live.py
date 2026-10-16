@@ -36,6 +36,10 @@ KPAD0 = 0x80750A00          # KPAD block, channel 0 (USA)
 WPAD_TBL = 0x80791C10
 
 
+def user_dir():
+    return os.environ.get('DOLPHIN_USER', os.path.join(HERE, '..', 'work', 'dolphin_gc'))
+
+
 def config(user):
     cfg = os.path.join(user, 'Config')
     os.makedirs(cfg, exist_ok=True)
@@ -77,12 +81,17 @@ def feed(g, h, l):
     g.write_mem(STATE + 0x38, struct.pack('>II', h, l))
 
 
-def controller(g):
-    """the game's player-1 controller object: (connected, attachment ok)"""
+def controller_obj(g):
+    """the game's player-1 controller object (USA)"""
     p = struct.unpack('>I', g.read_mem(0x807D0DA4, 4))[0]
     for off in (32, 36):
         p = struct.unpack('>I', g.read_mem(p + off, 4))[0]
-    obj = struct.unpack('>I', g.read_mem(p + 4, 4))[0]
+    return struct.unpack('>I', g.read_mem(p + 4, 4))[0]
+
+
+def controller(g):
+    """the game's player-1 controller object: (connected, attachment ok)"""
+    obj = controller_obj(g)
     b = g.read_mem(obj + 52, 3)
     return b[1], b[2]
 
@@ -109,7 +118,7 @@ def main():
     image = os.environ.get('SMG2_IMAGE')
     if not image:
         sys.exit('set SMG2_IMAGE to an unpatched SB4E01 image')
-    user = os.environ.get('DOLPHIN_USER', os.path.join(HERE, '..', 'work', 'dolphin_gc'))
+    user = user_dir()
     secs = int(sys.argv[1]) if len(sys.argv) > 1 else 40
     config(user)
     proc = subprocess.Popen([dolphin, '-u', os.path.abspath(user), '-b', '-e', image],

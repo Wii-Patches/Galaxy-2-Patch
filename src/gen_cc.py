@@ -249,7 +249,11 @@ def build(region, dol):
     ops.append(make_b_patch(sites['ptr_check_hook'], 'cc_pointer_check', 'Pointer check hook'))
     ops.append(make_b_patch(sites['ui4_hook'], 'cc_ui4', 'UI prompt hook 4'))
     ops.append(make_b_patch(sites['ui5_hook'], 'cc_ui5', 'UI prompt hook 5'))
-    ops.append(make_b_patch(sites['ptr_upd_hook'], 'cc_pointer_update', 'Pointer update hook'))
+    # Pointer update: the hook goes after the function's own `stw r31,12(r1); mr r31,r3`, which are
+    # written first -- the routine comes back past them, and skipping them corrupted the caller's r31
+    upd = sites['ptr_upd_hook']
+    upd_bytes = struct.pack('>3I', 0x93E1000C, 0x7C7F1B78, b_insn(symbols['cc_pointer_update'], upd + 8))
+    ops.append(Patch(upd, upd_bytes, dol.read(upd, 12), note='Pointer update hook'))
     ops.append(make_b_patch(sites['btn_hook'], 'cc_button_copy', 'Button copy and remap hook'))
     ops.append(make_b_patch(sites['ptr_valid_hook'], 'cc_pointer_valid', 'Pointer valid flag hook'))
     ops.append(make_b_patch(sites['stick_hook'], 'cc_left_stick', 'Left stick copy hook'))

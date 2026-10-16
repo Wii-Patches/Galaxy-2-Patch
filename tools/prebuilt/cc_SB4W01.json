@@ -54,8 +54,8 @@
   {
    "t": "patch",
    "addr": 2152325036,
-   "new": "4bb63c90",
-   "orig": "80030034",
+   "new": "93e1000c7c7f1b784bb63c88",
+   "orig": "8003003493e1000c7c7f1b78",
    "note": "Pointer update hook"
   },
   {

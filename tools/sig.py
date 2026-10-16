@@ -20,8 +20,17 @@ def mask_word(w):
     return w
 
 
-def find(dst, usa, addr, before, after):
-    pat = [mask_word(struct.unpack('>I', usa.read(addr - 4 * before + 4 * i, 4))[0])
+def mask_loose(w):
+    """mask_word, but also every immediate and load/store displacement (SDK code whose
+    data moved by a small amount between releases)"""
+    op = w >> 26
+    if op in (14, 15, 24, 25, 26, 27, 28, 29) or 32 <= op <= 55:
+        return w & 0xFFFF0000
+    return mask_word(w)
+
+
+def find(dst, usa, addr, before, after, mask=mask_word):
+    pat = [mask(struct.unpack('>I', usa.read(addr - 4 * before + 4 * i, 4))[0])
            for i in range(before + after)]
     n = len(pat)
     res = []
@@ -29,15 +38,15 @@ def find(dst, usa, addr, before, after):
         if idx >= 7:
             continue
         words = struct.unpack('>%dI' % (size // 4), bytes(dst.data[off:off + size]))
-        mw = [mask_word(w) for w in words]
+        mw = [mask(w) for w in words]
         for k in range(len(mw) - n):
             if mw[k:k + n] == pat:
                 res.append(base + 4 * (k + before))
     return res
 
 
-def find_unique(usa, dst, addr, before, after):
-    r = find(dst, usa, addr, before, after)
+def find_unique(usa, dst, addr, before, after, mask=mask_word):
+    r = find(dst, usa, addr, before, after, mask)
     if len(r) != 1:
         raise SystemExit('signature for 0x%08X matched %d places in %s' % (addr, len(r), dst.path))
     return r[0]

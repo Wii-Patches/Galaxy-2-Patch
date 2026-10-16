@@ -166,6 +166,9 @@ void gc_frame(void)
     if (!blk)
         return;
     status = *(s32 *)(blk + WPAD_STATUS);
+#ifdef NO_CALLBACKS
+    return;
+#endif
     if (gc_in(&h, &l)) {
         if (!ST->connected && status == -1) {
             ST->connected = 1;
@@ -300,6 +303,9 @@ void gc_sample(u8 *k, u32 chan)
     u32 h, l, b, i, idx, cnt, n;
 
     ST->n_sample++;
+#ifdef NO_SAMPLE
+    return;
+#endif
     if (chan || !gc_in(&h, &l))
         return;
     ST->n_sample_ok++;
@@ -352,6 +358,9 @@ u32 gc_probe(u32 chan, u32 *type)
     s32 status;
 
     ST->n_probe++;
+#ifdef NO_PROBE
+    return 0;
+#endif
     if (chan || !gc_in(&h, &l))
         return 0;
     blk = *(u8 **)(WPAD_TBL + chan * 4);

@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.join(HERE, '..', 'tools'))
 import asm
 from layout import GC_BASE, GC_END
 from ops import Blob, Feature, Hook
-from sig import find_unique
+from sig import find_unique, mask_loose
 
 REF = 'SB4E01'
 STATE = GC_BASE                 # hook state (zeroed), then the three routines
@@ -86,12 +86,12 @@ def resolve(region, dol):
         ref = dol_for(REF)
         if ref is None:
             raise SystemExit('%s: the USA main.dol is needed to find the hook sites' % region)
-        a = dict(Frame=find_unique(ref, dol, FRAME, 0, 40),
-                 KPADiRead=find_unique(ref, dol, KPAD_READ, 0, 40),
-                 WPADProbe=find_unique(ref, dol, WPAD_PROBE, 0, 40),
-                 SIGetType=find_unique(ref, dol, SI_GETTYPE, 0, 40),
-                 OSDisableInterrupts=find_unique(ref, dol, OS_DISABLE, 0, 6),
-                 OSRestoreInterrupts=find_unique(ref, dol, OS_RESTORE, 0, 6))
+        a = dict(Frame=find_unique(ref, dol, FRAME, 0, 40, mask_loose),
+                 KPADiRead=find_unique(ref, dol, KPAD_READ, 0, 40, mask_loose),
+                 WPADProbe=find_unique(ref, dol, WPAD_PROBE, 0, 40, mask_loose),
+                 SIGetType=find_unique(ref, dol, SI_GETTYPE, 0, 40, mask_loose),
+                 OSDisableInterrupts=find_unique(ref, dol, OS_DISABLE, 0, 6, mask_loose),
+                 OSRestoreInterrupts=find_unique(ref, dol, OS_RESTORE, 0, 6, mask_loose))
         a['SiTypes'] = _data(ref, dol, SI_GETTYPE, a['SIGetType'], SI_TYPES)
         a['WpadTbl'] = _data(ref, dol, WPAD_PROBE, a['WPADProbe'], WPAD_TBL)
     a['SampleCount'] = a['KPADiRead'] + (SAMPLE_COUNT - KPAD_READ)    # same code in every release
@@ -109,6 +109,7 @@ def compile_hook(name, defs):
     D = ['-D%s=%s' % kv for kv in defs.items()] + ['-DHOOK_' + name]
     if os.environ.get('DEBUG_FEED'):
         D.append('-DDEBUG_FEED')
+    D += os.environ.get('GC_DEFS', '').split()        # dev only, e.g. GC_DEFS=-DNO_CALLBACKS
     cflags = ['-O2', '-fno-unroll-loops', '-mbig-endian', '-mcpu=750', '-msoft-float', '-msdata=none',
               '-ffreestanding', '-fno-pic', '-fno-asynchronous-unwind-tables', '-fno-stack-protector',
               '-fno-builtin', '-nostdlib', '-Wall', '-Werror']
