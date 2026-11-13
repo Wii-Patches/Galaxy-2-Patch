@@ -94,7 +94,7 @@ jobs:
             $BINS --distpath pyinst_dist tools/gui.py
           cp wit-gpl-2.0.txt "pyinst_dist/Galaxy-2-Patcher.app/Contents/Resources/wit-gpl-2.0.txt"
           cd pyinst_dist
-          zip -qr "../Galaxy-2-Patch-${{ matrix.target }}.zip" Galaxy-2-Patcher.app
+          zip -qr "../Galaxy-2-ISO-Patcher-${{ matrix.target }}.zip" Galaxy-2-Patcher.app
 
       - name: Build app (Linux)
         if: matrix.target == 'linux-x86_64'
@@ -107,7 +107,7 @@ jobs:
             $BINS --distpath pyinst_dist tools/gui.py
           cp wit-gpl-2.0.txt pyinst_dist/Galaxy-2-Patcher/
           cd pyinst_dist
-          tar -czf "../Galaxy-2-Patch-${{ matrix.target }}.tar.gz" Galaxy-2-Patcher
+          tar -czf "../Galaxy-2-ISO-Patcher-${{ matrix.target }}.tar.gz" Galaxy-2-Patcher
 
       - name: Build app (Windows)
         if: matrix.target == 'windows-x86_64'
@@ -122,19 +122,19 @@ jobs:
             $BINS --distpath pyinst_dist tools/gui.py
           cp wit-gpl-2.0.txt pyinst_dist/Galaxy-2-Patcher/
           cd pyinst_dist
-          7z a "../Galaxy-2-Patch-${{ matrix.target }}.zip" Galaxy-2-Patcher \
-            || powershell -Command "Compress-Archive -Path Galaxy-2-Patcher -DestinationPath ../Galaxy-2-Patch-${{ matrix.target }}.zip"
+          7z a "../Galaxy-2-ISO-Patcher-${{ matrix.target }}.zip" Galaxy-2-Patcher \
+            || powershell -Command "Compress-Archive -Path Galaxy-2-Patcher -DestinationPath ../Galaxy-2-ISO-Patcher-${{ matrix.target }}.zip"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Galaxy-2-Patch-${{ matrix.target }}
-          path: Galaxy-2-Patch-${{ matrix.target }}.*
+          name: Galaxy-2-ISO-Patcher-${{ matrix.target }}
+          path: Galaxy-2-ISO-Patcher-${{ matrix.target }}.*
 
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: Galaxy-2-Patch-${{ matrix.target }}.*
+          files: Galaxy-2-ISO-Patcher-${{ matrix.target }}.*
 
   patch-files:
     needs: check
