@@ -70,28 +70,12 @@ There is also a command-line tool:
 python3 tools/patch_disc.py "Super Mario Galaxy 2.wbfs" --cc --gc
 ```
 
-### Gecko Codes (Dolphin & USB Loaders)
-
-Copy `codes/<disc id>.ini` (`SB4E01`, `SB4P01`, `SB4J01`, `SB4W01`, or `SB4K01`) into Dolphin's `GameSettings` directory, or use `codes/<disc id>.txt` with USB loaders (Ocarina / Gecko OS).
-
-In Dolphin:
-1. Enable **Cheats / Gecko Codes**, and enable both the Classic Controller and the GameCube controller codes.
-2. Set **GameCube Port 1** to **Standard Controller**.
-3. Launch the game!
-
-The codes write their routines to `0x80001820`–`0x80003000`, which is where Gecko code handlers live, so a patched disc (or Riivolution) is the more reliable install.
-
-### Riivolution
-
-Copy the `riivolution/` directory to the root of your SD card / USB drive for Riivolution on real hardware.
-
 ## Building from Source
 
 To verify or rebuild everything from the sources (devkitPPC; retail `main.dol` files named `<disc id>.dol` in `$SMG2_DOLS`):
 
 ```bash
 python3 tools/gen_prebuilt.py    # compiles src/ to tools/prebuilt/*.json; regions without a DOL are skipped
-python3 tools/build.py           # generates codes/ and riivolution/ files
 python3 tools/check.py           # runs consistency checks
 python3 tools/verify.py          # verifies against retail DOLs
 ```

@@ -1,29 +1,28 @@
 # Technical Notes
 
 How the patches work, where they hook, and how one set of data becomes a
-patched `main.dol`, a Gecko code list, and a Riivolution patch. For installing
+patched `main.dol`. For installing
 and playing, see the [README](../README.md).
 
 Addresses below are the **USA** `main.dol` (`SB4E01`) unless noted; the table at
 the end lists the other regional releases.
 
-## One Data Set, Three Outputs
+## One Data Set
 
 Every patch is a list of operations on one release's `main.dol`:
 
-| Operation | Static (`main.dol`) | Gecko | Riivolution |
-| --- | --- | --- | --- |
-| **Blob** — injected routine or lookup table in low memory | text section at `0x80001820` | `06` write code | `<memory>` element |
-| **Patch** — replace instructions at a known game site | overwrite at offset | `04` / `06` code | `<memory>` element |
-| **Hook** — branch to a routine that executes displaced instructions | branch + trampoline | `C2` code | branch + `<memory>` |
+| Operation | Effect |
+| --- | --- |
+| **Blob** — injected routine or lookup table in low memory | text section at `0x80001820` |
+| **Patch** — replace instructions at a known game site | overwrite at offset |
+| **Hook** — branch to a routine that executes displaced instructions | branch + trampoline |
 
 `tools/prebuilt/<feature>_<disc id>.json` holds those operations, including the
-retail bytes expected at every site. `tools/ops.py` turns them into each
-format, `tools/patcher.py` applies them (and refuses a `main.dol` whose sites do
-not match, so already-modified or foreign dumps are never touched), and
-`tools/build.py` writes `codes/` and `riivolution/`. `tools/check.py` validates
-consistency; `tools/verify.py` checks the data against real retail DOLs for
-every combination of patches (CC alone, GC alone, CC+GC together, and stepwise).
+retail bytes expected at every site. `tools/patcher.py` applies them (and refuses
+a `main.dol` whose sites do not match, so already-modified or foreign dumps are
+never touched). `tools/check.py` validates consistency; `tools/verify.py` checks
+the data against real retail DOLs for every combination of patches (CC alone, GC
+alone, CC+GC together, and stepwise).
 
 ## Low-Memory Layout
 

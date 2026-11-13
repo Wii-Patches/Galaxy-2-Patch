@@ -3,9 +3,6 @@
 
   * every prebuilt feature loads, stays inside its window of the injected
     section, and its hook trampolines end where they should
-  * the committed codes/ and riivolution/ files are exactly what build.py
-    generates from the prebuilt data
-  * Gecko output parses back into the same operations
 
     python3 tools/check.py
 """
@@ -16,7 +13,6 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, '..', 'src'))
-import build
 import features
 from layout import CAVE_BASE, CAVE_LIMIT, WINDOWS
 from ops import Hook, Patch, b_insn
@@ -57,8 +53,7 @@ def main():
                     back = struct.unpack('>I', body[-4:])[0]
                     check(back == b_insn(op.site + 4, op.tramp + len(body) - 4), '%s/%s: bad branch-back at 0x%08X' % (name, region, op.site))
                     check(CAVE_BASE <= op.tramp and op.tramp + n <= CAVE_LIMIT, 'trampoline outside the injected section')
-                    # a Gecko code handler runs the routine from somewhere else, so every relative
-                    # branch must stay inside it (calls to the game go through absolute addresses)
+                    # every relative branch must stay inside the routine (calls to the game go through absolute addresses)
                     for i, w in enumerate(op.payload):
                         opc = w >> 26
                         if opc in (16, 18) and not w & 2:
@@ -68,21 +63,6 @@ def main():
                             check(0 <= tgt <= n, '%s/%s: relative branch out of the routine at 0x%08X+0x%X' % (name, region, op.tramp, i * 4))
                 elif isinstance(op, Patch):
                     check(len(op.new) == len(op.orig), '%s/%s: patch size mismatch at 0x%08X' % (name, region, op.addr))
-            # gecko -> ops round trip
-            import gecko
-            text = '\n'.join(f.gecko_lines())
-            for kind, addr, body in gecko.parse('\n'.join(l for l in text.splitlines() if not l.startswith('*'))):
-                if kind == 'C2':
-                    hooks = [o for o in f.ops if isinstance(o, Hook) and o.site == addr]
-                    check(len(hooks) == 1 and body[:len(hooks[0].payload) - 1] == hooks[0].payload[:-1],
-                          '%s/%s: C2 at 0x%08X does not round-trip' % (name, region, addr))
-    # committed outputs are current
-    root = os.path.join(HERE, '..')
-    for region in REGIONS:
-        ini = build.gecko_ini(region)
-        check(open(os.path.join(root, 'codes', region + '.ini')).read() == ini, 'codes/%s.ini is stale (run tools/build.py)' % region)
-        check(open(os.path.join(root, 'riivolution', region + '.xml')).read() == build.riivolution_xml(region),
-              'riivolution/%s.xml is stale (run tools/build.py)' % region)
     print('FAILED: %d' % len(fail) if fail else 'ok: all checks passed')
     sys.exit(1 if fail else 0)
 

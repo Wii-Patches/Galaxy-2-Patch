@@ -1,13 +1,8 @@
 """The patch model shared by every output format.
 
 A feature (SDHC, GameCube pad, Classic Controller) is a list of operations
-against one region's main.dol.  The same list is turned into
-
-  * a patched main.dol            (static: trampolines live in the injected section)
-  * a Gecko code list             (Hook -> C2, Patch -> 04/06, Blob -> 06)
-  * a Riivolution <patch> element (everything as <memory> writes)
-
-so the three can never drift apart.
+against one region's main.dol.  It is applied statically: trampolines live in
+the injected section of a patched main.dol.
 """
 from __future__ import annotations
 
@@ -103,48 +98,6 @@ class Feature:
             elif dol.read(addr, len(data)) != data:
                 return False
         return True
-
-    # ------------------------------------------------------------- Gecko view
-    def gecko_lines(self):
-        out = []
-        for op in self.ops:
-            if isinstance(op, Patch):
-                if op.note:
-                    out.append('* ' + op.note)
-                if len(op.new) == 4:
-                    out.append('04%06X %08X' % (op.addr & 0x01FFFFFF, struct.unpack('>I', op.new)[0]))
-                else:
-                    out += _gecko_bytes(op.addr, op.new)
-            elif isinstance(op, Blob):
-                if op.note:
-                    out.append('* ' + op.note)
-                out += _gecko_bytes(op.addr, op.data)
-            elif isinstance(op, Hook):
-                words = list(op.payload)
-                if len(words) % 2:
-                    words.insert(len(words) - 1, 0x60000000)    # keep the C2 body an even word count
-                if op.note:
-                    out.append('* ' + op.note)
-                out.append('C2%06X %08X' % (op.site & 0x01FFFFFF, len(words) // 2))
-                for i in range(0, len(words), 2):
-                    out.append('%08X %08X' % (words[i], words[i + 1]))
-        return out
-
-    # ------------------------------------------------------- Riivolution view
-    def memory_elements(self):
-        out = []
-        for addr, data in sorted(self.writes()):
-            out.append('<memory offset="0x%08X" value="%s" />' % (addr, data.hex().upper()))
-        return out
-
-
-def _gecko_bytes(addr, data):
-    """06 code: raw byte run, padded to a multiple of 8 bytes in the line data."""
-    out = ['06%06X %08X' % (addr & 0x01FFFFFF, len(data))]
-    padded = data + b'\0' * (-len(data) % 8)
-    for i in range(0, len(padded), 8):
-        out.append('%s %s' % (padded[i:i + 4].hex().upper(), padded[i + 4:i + 8].hex().upper()))
-    return out
 
 
 def apply_static(dol, features):
